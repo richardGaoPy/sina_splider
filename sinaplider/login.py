@@ -19,7 +19,7 @@ __client_js_ver__ = 'ssologin.js(v1.4.18)'
 
 class Weibo(object):
 
-    """"Login assist for Sina weibo."""
+    """"Login Sina weibo."""
 
     def __init__(self, username, password):
         self.username = self.__encode_username(username).rstrip()
@@ -76,7 +76,7 @@ class Weibo(object):
             import subprocess
             filename = os.getcwd() + '/' + filename
             proc = subprocess.Popen(['eog', filename])
-            code = raw_input('请输入验证码:')
+            code = raw_input(u'Enter check code:')
             os.remove(filename)
             proc.kill()
             print pcid, code
