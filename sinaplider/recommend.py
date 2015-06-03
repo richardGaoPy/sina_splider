@@ -1,91 +1,114 @@
-#!/usr/bin/evn python
+#!/usr/bin/env python
 # -*- coding:utf-8 -*-
-#0p = sqrt((x1-x2)^2 + (y1-y2)^2) |x| = ~(x2+y2)
-
-from math import sqrt
 
 from data_config import sina_data
+from math import sqrt
 
-def conform_score(p1, p2):
-    """
-    :return [euclidean]distance score of person1 and person2
-    """
-    both_viewed = dict()        #get rated items
+def similarity_score(person1,person2):
+    """get the similar socre"""
 
-    for item in sina_data[p1]:
-        if item in sina_data[p2]:
+    both_viewed = {}        #get p1, p2 item
+
+    for item in sina_data[person1]:
+        if item in sina_data[person2]:
             both_viewed[item] = 1
 
-    if len(both_viewed) == 0:
-        return 0
+        # they both items len
+        if len(both_viewed) == 0:
+            return 0
 
-    sum_of_eclidean_distance = []
+        # Finding Euclidean distance
+        sum_of_eclidean_distance = []
 
-    for item in both_viewed:
-        sum_of_eclidean_distance.append(pow(sina_data[p1][item]-sina_data[p2][item], 2))
+        for item in sina_data[person1]:
+            if item in sina_data[person2]:
+                sum_of_eclidean_distance.append(pow(sina_data[person1][item] - sina_data[person2][item],2))
+        sum_of_eclidean_distance = sum(sum_of_eclidean_distance)
 
-    sum_distance = sum(sum_of_eclidean_distance)
-    return 1/(1+sqrt(sum_distance))
+        return 1/(1+sqrt(sum_of_eclidean_distance))
 
-def corelation_person(p1, p2):
-    """"""
-    both_rated = dict()
-    for item in sina_data[p1]:
-        if item in sina_data[p2]:
+
+
+def pearson_correlation(person1,person2):
+    """
+    :return p1, p2 relation
+    """
+    both_rated = {}
+    for item in sina_data[person1]:
+        if item in sina_data[person2]:
             both_rated[item] = 1
 
-    num_of_ratings = len(both_rated)
+    number_of_ratings = len(both_rated)
 
-    if num_of_ratings == 0:
+    # Checking for number of ratings in common
+    if number_of_ratings == 0:
         return 0
 
-    #sum preferences of each user
-    p1_preferences_sum = sum([sina_data[p1][item] for item in both_rated])
-    p2_preferences_sum = sum([sina_data[p2][item] for item in both_rated])
+    # Add up all the preferences of each user
+    person1_preferences_sum = sum([sina_data[person1][item] for item in both_rated])
+    person2_preferences_sum = sum([sina_data[person2][item] for item in both_rated])
 
-    sum_of_both_users = sum([sina_data[p1][item]*sina_data[p2][item] for item in both_rated])
+    # Sum up the squares of preferences of each user
+    person1_square_preferences_sum = sum([pow(sina_data[person1][item],2) for item in both_rated])
+    person2_square_preferences_sum = sum([pow(sina_data[person2][item],2) for item in both_rated])
 
-    numerator_value = sum_of_both_users - (p1_preferences_sum*p2_preferences_sum/num_of_ratings)
-    denominator_value = sqrt((p1_preferences_sum - pow(p1_preferences_sum,2)/num_of_ratings) *
-                             (p2_preferences_sum - pow(p2_preferences_sum,2)/num_of_ratings))
+    # Sum up the product value of both preferences for each item
+    product_sum_of_both_users = sum([sina_data[person1][item] * sina_data[person2][item] for item in both_rated])
 
+    # Calculate the pearson score
+    numerator_value = product_sum_of_both_users - (person1_preferences_sum*person2_preferences_sum/number_of_ratings)
+    denominator_value = sqrt((person1_square_preferences_sum - pow(person1_preferences_sum,2)/number_of_ratings) * (person2_square_preferences_sum -pow(person2_preferences_sum,2)/number_of_ratings))
     if denominator_value == 0:
         return 0
     else:
         r = numerator_value/denominator_value
         return r
 
-def most_conform_users(person, number_of_users):
-    scores = [(corelation_person(person, other_person), other_person)
-              for other_person in sina_data if other_person != person]
+def most_similar_users(person,number_of_users):
+    # returns the number_of_users (similar persons) for a given specific person.
+    scores = [(pearson_correlation(person,other_person),other_person) for other_person in sina_data if  other_person != person ]
+
+    # Sort the similar persons so that highest scores person will appear at the first
     scores.sort()
     scores.reverse()
     return scores[0:number_of_users]
 
-def user_reommendation(person):
+def user_reommendations(person):
+
+    # get relations list
     totals = {}
-    sim_sums = {}
-    rankings_list = []
+    simSums = {}
+    rankings_list =[]
     for other in sina_data:
+        # don't compare me to myself
         if other == person:
             continue
-        sim = corelation_person(person, other)
+        sim = pearson_correlation(person,other)
+        #print ">>>>>>>",sim
 
-        if sim <= 0:
+        # ignore scores of zero or lower
+        if sim <=0:
             continue
         for item in sina_data[other]:
+
+            # only score movies i haven't seen yet
             if item not in sina_data[person] or sina_data[person][item] == 0:
-                totals.setdefault(item, 0)
-                totals[item] += sina_data[other][item]*sim
 
-                sim_sums.setdefault(item, 0)
-                sim_sums[item] += sim
+                # Similrity * score
+                totals.setdefault(item,0)
+                totals[item] += sina_data[other][item]* sim
+                # sum of similarities
+                simSums.setdefault(item,0)
+                simSums[item]+= sim
 
-    rankings = [(totals/sim_sums[item], item) for item, total in totals.items()]
+        # Create the normalized list
+
+    rankings = [(total/simSums[item],item) for item,total in totals.items()]
     rankings.sort()
     rankings.reverse()
-    reco_list = [recommend_item for score, recommend_item in rankings]
-    return reco_list
+    # returns the recommended items
+    recommendataions_list = [recommend_item for score,recommend_item in rankings]
+    return recommendataions_list
 
-if __name__ == "__main__":
-    user_reommendation()
+# if __name__ == "__main__":
+#     print user_reommendations('7')

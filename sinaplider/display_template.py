@@ -1,6 +1,4 @@
-#!/usr/bin/evn python
-# -*- coding:utf -*-
-
+# coding=utf8
 import base64
 import binascii
 import cookielib
@@ -13,10 +11,11 @@ import time
 import urllib
 import urllib2
 import urlparse
-
 import webbrowser
 
+
 __client_js_ver__ = 'ssologin.js(v1.4.18)'
+
 
 class Weibo(object):
 
@@ -26,7 +25,6 @@ class Weibo(object):
         self.username = self.__encode_username(username).rstrip()
         self.password = password
 
-        # get a cookie obj
         cj = cookielib.LWPCookieJar()
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 
@@ -47,13 +45,13 @@ class Weibo(object):
         return binascii.b2a_hex(rsa.encrypt(msg, key))
 
     def __prelogin(self):
-        """get before info for check image"""
         url = ('http://login.sina.com.cn/sso/prelogin.php?'
                'entry=weibo&callback=sinaSSOController.preloginCallBack&rsakt=mod&checkpin=1&'
                'su={username}&_={timestamp}&client={client}'
                ).format(username=self.username, timestamp=int(time.time() * 1000), client=__client_js_ver__)
 
         resp = urllib2.urlopen(url).read()
+        print resp
         return self.__prelogin_parse(resp)
 
     @staticmethod
@@ -72,7 +70,7 @@ class Weibo(object):
             os.remove(filename)
 
         urllib.urlretrieve(url, filename)
-        if os.path.isfile(filename):        #get verify code successfully
+        if os.path.isfile(filename):  # get verify code successfully
             #  display the code and require to input
             from PIL import Image
             import subprocess
@@ -125,34 +123,65 @@ class Weibo(object):
     def __do_login(self, data):
         url = 'http://login.sina.com.cn/sso/login.php?client=%s' % __client_js_ver__
         headers = {
-            'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0"
+            'User-Agent': 'Weibo Assist'
         }
         req = urllib2.Request(
             url=url, data=urllib.urlencode(data), headers=headers)
         resp = urllib2.urlopen(req).read()
+        f = open("resp.html", 'w')
+        f.write(resp)
+        f.close()
         return self.__parse_real_login_and_do(resp)
 
     def __parse_real_login_and_do(self, resp):
         p = re.compile('location\.replace\(\'(.*?)\'\)')
         url = p.search(resp).group(1)
 
-        # check login seccess
+        # parse url to check whether login successfully
         query = urlparse.parse_qs(urlparse.urlparse(url).query)
-        if int(query['retcode'][0]) == 0:       #successful
-            #print query['retcode'][0]
-            self.opener.open(url)       #log in and get cookies
-            print u'Login success!'
+        if int(query['retcode'][0]) == 0:  # successful
+            print query['retcode'][0]
+            self.opener.open(url)  # log in and get cookies
+            print url
+            print u'登录成功!'
             return True
         else:  # fail
-            print u'Error Number:', query['retcode'][0]
-            print u'Error Log:', query['reason'][0].decode('gbk')
+            print u'错误代码:', query['retcode'][0]
+            print u'错误提示:', query['reason'][0].decode('gbk')
             return False
 
-    def urlopen(self, url="http://weibo.com"):
+    def urlopen(self, url):
         return self.opener.open(url)
 
-# if __name__ == "__main__":
-#     weibo = Weibo('drehunlichenan@sina.com', 'gp5106*smdyw')
-#     if weibo.login():
-#         with open('myhome.html', 'w') as f:
-#             print >> f, weibo.urlopen().read()
+def get_data(url):
+    response = urllib2.urlopen(url)
+    text = response.read()
+    return text
+
+if __name__ == '__main__':
+    weibo = Weibo('drehunlichenan@sina.com', 'gp5106*smdyw')
+    if weibo.login():
+        # content = weibo.urlopen('http://weibo.com').read()
+        # print content
+        # with open('myhome.html', 'w') as f:
+        #     print >> f, weibo.urlopen('http://weibo.com').read()
+        # #     #p = re.compile('<li class="S_line1"><a bpfilter="page_frame" href=\"(.*?)follow')
+        # #     print >> f, weibo.urlopen('http://weibo.com').read()
+        # #
+        # # content = open('down.html', 'r')
+        # content = content.replace("\\",'')
+        # f = open('test.html', 'w')
+        # f.write(content)
+        # f.close()
+        # # p = re.compile('<strong class="W_f18">(\d+)</strong>')
+        # # num = p.search(content).group(1)
+        # # print 'p_num', num
+        # p1 = re.compile('<li class="S_line1"><a bpfilter="page_frame" href=\"(.*?)follow')
+        # uid = p1.search(content).group(1)
+        # url = "http://weibo.com" + str(uid) + "follow?from=page_100505&wvr=6&mod=headfollow#place"
+        # webbrowser.open(url)
+        # fp = open('follow.html', 'w')
+        # html = weibo.urlopen(url).read()
+        # fp.write(html)
+        # fp.close()
+        webbrowser.open("http://weibo.com")

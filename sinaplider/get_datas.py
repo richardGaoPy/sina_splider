@@ -2,11 +2,10 @@
 # -*- coding:utf-8 -*-
 
 import re
-import threading
 
 from login import Weibo
 
-def main_thread(url="http://weibo.com"):
+def main_thread(weibo, url="http://weibo.com"):
     """"""
     # =========== my main page ============
     with open('down.html', 'w') as f:
@@ -17,7 +16,7 @@ def main_thread(url="http://weibo.com"):
     text = text.replace('\\', '')
     p1 = re.compile('<li class="S_line1">(.+)<span class="S_txt2">')
     result_1 = p1.findall(text)
-    result_1 = result_1[0].replace(' ','')
+    result_1 = result_1[0].replace(' ', '')
 
     #pipei uri
     ph = re.compile('href="(.+)"class="S_txt1"><strongnode-type="follow">')
@@ -39,8 +38,6 @@ def main_thread(url="http://weibo.com"):
 
     #print url1, follow_num
     #print url2, fans_num
-
-    fans_uri_list = list()
 
     # ========= myfollow list===============
     with open('follow1.html', 'w') as f:
@@ -126,31 +123,33 @@ def main_thread(url="http://weibo.com"):
     # print fans_uri_list
     # print fans_uri_list.__len__()
 
-    return follow_uri_list, fans_uri_list , data_list, result_fs
+    return follow_uri_list, fans_uri_list, data_list, result_fs
 
 
 # son_thread run function
 # fans de follow and fans
-def worker_thread(weibo, uris):
-    print "begain son thread."
-    #main_thread()
-    i = 0
+def worker_thread(weibo, uris=['http://weibo.com/u/2667478067?from=myfollow_all',]):
+    #print "start second datas."
     for uri in uris:
+        # get p_id, follow and fans page number
         text = weibo.urlopen(uri).read()
         text = text.replace('\\', '')
         p = re.compile('page_id(.+);')
         result = p.search(text).group(1)
         result = re.search('(\d+)', result).group(1)
 
+        #get p_id
         p2 = re.compile('<strong class="W_f18">(\d+)</strong>')
         result_2 = p2.findall(text)
 
+        #get follow and fans number.
         follow_page_total = (int(result_2[0]) / 20) + 1
         fans_page_total = (int(result_2[1]) / 20) + 1
 
         follow_list = list()
         fans_list = list()
-        for i in xrange(1, follow_page_total):
+        for i in xrange(1, follow_page_total+1):
+            #cache_list = list()
             url_w = "http://weibo.com/p/" + str(result) + \
                 "/follow?page=" + str(i) + "#Pl_Official_HisRelation__61"
             text = weibo.urlopen(url_w).read()
@@ -158,7 +157,7 @@ def worker_thread(weibo, uris):
             pl = re.compile('action-data="uid=(\d+)&fnick')
             data_list = pl.findall(text)
             follow_list.extend(data_list[1:-1])
-        for j in xrange(1, fans_page_total):
+        for j in xrange(1, fans_page_total+1):
             url_s = "http://weibo.com/p/" + str(result) + \
                     "/follow?relate=fans&page=" + str(j) + "#Pl_Official_HisRelation__61"
             text = weibo.urlopen(url_s).read()
@@ -166,18 +165,24 @@ def worker_thread(weibo, uris):
             pl = re.compile('action-data="uid=(\d+)&nick')
             data_list = pl.findall(text)
             fans_list.extend(data_list[1:-1])
-        print "================================================="
+        print "*"*40
+        print uri, " follow and fans"
         #sina limit user number.
+        print "------->follows:"
         print follow_list
         print follow_list.__len__()
+        print "------->fans:"
         print fans_list
         print fans_list.__len__()
-
-if __name__ == "__main__":
-    weibo = Weibo('drehunlichenan@sina.com', 'gp5106*smdyw')
-    if weibo.login():
-        w_uris, s_uris ,follow_list, fans_list= main_thread()
-        print w_uris
-        print s_uris
-        worker_thread(weibo, s_uris)
-        worker_thread(weibo, w_uris)
+        print "-"*40
+#
+# if __name__ == "__main__":
+#     weibo = Weibo('drehunlichenan@sina.com', 'gp5106*smdyw')
+#     if weibo.login():
+#         w_uris, s_uris ,follow_list, fans_list = main_thread(weibo)
+#         print w_uris
+#         print s_uris
+#         print "follow's follow and fans!"
+#         worker_thread(weibo, w_uris)
+#         print "fans's follow and fans!"
+#         worker_thread(weibo, s_uris)
