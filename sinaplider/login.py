@@ -152,7 +152,7 @@ class Weibo(object):
         return self.opener.open(url)
 
 # if __name__ == "__main__":
-#     weibo = Weibo('drehunlichenan@sina.com', 'gp5106*smdyw')
+#     weibo = Weibo('username', 'password')
 #     if weibo.login():
 #         with open('myhome.html', 'w') as f:
 #             print >> f, weibo.urlopen().read()
